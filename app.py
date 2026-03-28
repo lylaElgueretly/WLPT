@@ -68,7 +68,7 @@ if st.button("Process Files"):
         st.error("Folder path does not exist or is not a directory.")
 
 # --- Optional: Run as standalone script ---
-if __name__ == "__main__" and not st._is_running_with_streamlit:
+if __name__ == "__main__":
     folder_path = "C:/Users/Lyla/Downloads/myproject"  # Change this path if needed
     results = process_folder(folder_path)
     for filename, text in results.items():
