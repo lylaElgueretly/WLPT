@@ -1,35 +1,9 @@
-import sys
-import subprocess
+# app.py
 from pathlib import Path
-
-# --- Runtime package installation to avoid ModuleNotFoundError ---
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-try:
-    from docx import Document
-except ModuleNotFoundError:
-    install("python-docx")
-    from docx import Document
-
-try:
-    import PyPDF2
-except ModuleNotFoundError:
-    install("PyPDF2")
-    import PyPDF2
-
-try:
-    from pptx import Presentation
-except ModuleNotFoundError:
-    install("python-pptx")
-    from pptx import Presentation
-
-# Streamlit for UI (optional, remove if not using Streamlit)
-try:
-    import streamlit as st
-except ModuleNotFoundError:
-    install("streamlit")
-    import streamlit as st
+from docx import Document
+import PyPDF2
+from pptx import Presentation
+import streamlit as st
 
 # --- Function to extract text from different file types ---
 def extract_text(file_path):
@@ -65,30 +39,39 @@ def extract_text(file_path):
     else:
         return f"[Unsupported file type: {ext}]"
 
-# --- Main App Logic ---
+# --- Function to process all files in a folder ---
 def process_folder(folder_path):
     folder = Path(folder_path)
+    results = {}
     for file in folder.iterdir():
         if file.is_file():
-            print(f"Processing: {file.name}")
             text = extract_text(file)
-            # Replace this line with your app's actual processing logic
-            print(f"Extracted Text (first 500 chars):\n{text[:500]}...\n")  # Preview first 500 chars
+            results[file.name] = text
+    return results
 
-# --- Streamlit UI (optional) ---
-if 'st' in sys.modules:
-    st.title("Document Reader App")
-    folder_input = st.text_input("Enter folder path to process:", "C:/Users/Lyla/Downloads/myproject")
-    if st.button("Process Files"):
-        st.text(f"Processing folder: {folder_input}")
-        folder = Path(folder_input)
-        for file in folder.iterdir():
-            if file.is_file():
-                text = extract_text(file)
-                st.subheader(file.name)
-                st.text_area("Extracted Text (first 500 chars)", text[:500])
+# --- Streamlit UI ---
+st.title("Document Reader App")
 
-# --- If running as a normal script ---
-if __name__ == "__main__" and 'streamlit' not in sys.modules:
-    folder_path = "C:/Users/Lyla/Downloads/myproject"  # Change this to your folder path
-    process_folder(folder_path)
+folder_input = st.text_input(
+    "Enter folder path to process:",
+    "C:/Users/Lyla/Downloads/myproject"
+)
+
+if st.button("Process Files"):
+    folder_path = Path(folder_input)
+    if folder_path.exists() and folder_path.is_dir():
+        results = process_folder(folder_path)
+        for filename, text in results.items():
+            st.subheader(filename)
+            st.text_area("Extracted Text (first 500 chars)", text[:500])
+    else:
+        st.error("Folder path does not exist or is not a directory.")
+
+# --- Optional: Run as standalone script ---
+if __name__ == "__main__" and not st._is_running_with_streamlit:
+    folder_path = "C:/Users/Lyla/Downloads/myproject"  # Change this path if needed
+    results = process_folder(folder_path)
+    for filename, text in results.items():
+        print(f"--- {filename} ---")
+        print(text[:500])  # Preview first 500 chars
+        print("\n")
