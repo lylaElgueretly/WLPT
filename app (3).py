@@ -1,34 +1,55 @@
-import streamlit as st
+import os
+from pathlib import Path
 
-st.set_page_config(page_title="IKC Studio", layout="wide")
+# Libraries for file reading
+from docx import Document
+import PyPDF2
+from pptx import Presentation
 
-st.title("IKC Studio")
-st.write("Turn your content into a smart AI prompt (no API needed)")
+# --- Function to extract text from different file types ---
+def extract_text(file_path):
+    ext = file_path.suffix.lower()
+    
+    if ext == ".txt":
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+    
+    elif ext == ".docx":
+        doc = Document(file_path)
+        return "\n".join([p.text for p in doc.paragraphs])
+    
+    elif ext == ".pdf":
+        text = ""
+        with open(file_path, "rb") as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        return text
+    
+    elif ext == ".pptx":
+        prs = Presentation(file_path)
+        text = ""
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text") and shape.text:
+                    text += shape.text + "\n"
+        return text
+    
+    else:
+        return f"[Unsupported file type: {ext}]"
 
-# Upload file
-uploaded_file = st.file_uploader("Upload your file", type=["txt"])
+# --- Main App Logic ---
+def process_folder(folder_path):
+    folder = Path(folder_path)
+    for file in folder.iterdir():
+        if file.is_file():
+            print(f"Processing: {file.name}")
+            text = extract_text(file)
+            # Here you can process 'text' with your existing app logic
+            print(f"Extracted Text:\n{text[:500]}...\n")  # Preview first 500 chars
 
-if uploaded_file:
-    text = uploaded_file.read().decode("utf-8")
-
-    st.subheader("Extracted Content")
-    st.text_area("Content", text, height=200)
-
-    # Generate prompt
-    prompt = f"""
-You are an expert educator and curriculum designer.
-
-Analyze the following content and generate:
-1. Key themes
-2. Learning objectives
-3. Suggested activities
-4. Assessment ideas
-
-Content:
-{text}
-"""
-
-    st.subheader("Prompt for Claude")
-    st.code(prompt)
-
-    st.info("Copy this prompt and paste it into Claude.")
+if __name__ == "__main__":
+    app_folder = "C:/Users/Lyla/Downloads/myproject"  # Update if needed
+    process_folder(app_folder)
